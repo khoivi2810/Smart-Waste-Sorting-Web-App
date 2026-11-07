@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Phân loại rác thải thông minh</title>
+<meta name="description" content="Nhận diện và phân loại rác thải qua camera bằng MobileNetV2 và TensorFlow.js">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs/dist/tf.min.js"></script></head>
+<body>
+
+<header class="top">
+  <div>
+    <h1>Phân loại rác thải thông minh</h1>
+    <p>Đưa rác trước camera, hệ thống cho biết nên bỏ vào thùng nào.</p>
+  </div>
+  <div class="top-right">
+    <div class="status"><span class="dot" id="dot"></span><span id="statusText">Đang tải mô hình…</span></div>
+    <button class="icon-btn" id="themeBtn" aria-label="Đổi giao diện sáng/tối" title="Đổi giao diện sáng/tối">◐</button>
+  </div>
+</header>
+
+<nav class="tabs" role="tablist" aria-label="Chức năng">
+  <button role="tab" id="tab-detect" aria-selected="true" aria-controls="view-detect">Nhận diện</button>
+  <button role="tab" id="tab-guide" aria-selected="false" aria-controls="view-guide">Hướng dẫn phân loại</button>
+  <button role="tab" id="tab-about" aria-selected="false" aria-controls="view-about">Giới thiệu</button>
+</nav>
+
+<!-- ============ TAB 1: NHẬN DIỆN ============ -->
+<main id="view-detect" class="view layout" role="tabpanel" aria-labelledby="tab-detect">
+  <section class="card" aria-label="Camera">
+    <div class="card-head">
+      <h2>Camera</h2>
+      <button class="link-btn" id="fsBtn">Toàn màn hình</button>
+    </div>
+
+    <div class="stage" id="stage">
+      <video id="video" playsinline muted hidden></video>
+      <canvas class="media" id="photo" hidden></canvas>
+      <div class="empty" id="empty">Bấm “Bắt đầu” để bật camera, hoặc tải một ảnh rác lên để thử.</div>
+      <div class="reticle"></div>
+      <div class="chip" id="chip">Đang nhận diện</div>
+      <div class="toast" id="toast" role="status"></div>
+    </div>
+
+    <div class="controls">
+      <button class="primary" id="startBtn">Bắt đầu</button>
+      <button id="stopBtn" disabled>Dừng</button>
+      <button id="flipBtn" disabled>Đổi camera</button>
+      <label class="btn" for="file" tabindex="0" id="fileLabel">Tải ảnh lên</label>
+      <input type="file" id="file" accept="image/*" hidden>
+    </div>
+
+    <p class="stats">
+      <span>Độ trễ: <b id="lat">–</b> ms</span>
+      <span>Tốc độ: <b id="fps">–</b> khung/giây</span>
+    </p>
+
+    <details class="settings">
+      <summary>Cài đặt</summary>
+      <div class="set-grid">
+        <label class="slider">Ngưỡng tin cậy: <b id="thVal">60%</b>
+          <input type="range" id="threshold" min="30" max="95" step="5" value="60">
+        </label>
+        <label class="check"><input type="checkbox" id="mirror"> Lật gương camera</label>
+        <label class="check"><input type="checkbox" id="speak"> Đọc to kết quả</label>
+        <label class="check"><input type="checkbox" id="demo"> Chế độ demo (không dùng AI)</label>
+      </div>
+    </details>
+  </section>
+
+  <aside class="side">
+    <section class="result" id="result" aria-live="polite">
+      <small>Kết quả nhận diện</small>
+      <div class="name" id="rName">Chưa có</div>
+      <div class="bin" id="rBin">Bật camera và đưa vật cần phân loại vào khung.</div>
+      <div class="conf" id="rConf"></div>
+      <div class="hold" id="holdWrap" hidden><div id="holdBar"></div></div>
+    </section>
+
+    <section class="card">
+      <h2>Xác suất từng loại</h2>
+      <div class="bars" id="bars"></div>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <h2>Thống kê phiên này</h2>
+        <span class="muted" id="totalCount">0 vật</span>
+      </div>
+      <div class="bars" id="counts"></div>
+    </section>
+
+    <section class="card">
+      <div class="card-head">
+        <h2>Lịch sử</h2>
+        <span>
+          <button class="link-btn" id="csvBtn">Xuất CSV</button>
+          <button class="link-btn" id="clearBtn">Xóa</button>
+        </span>
+      </div>
+      <ul class="hist" id="hist"><li class="placeholder"><span>Giữ vật yên khoảng 1 giây để hệ thống ghi nhận.</span></li></ul>
+    </section>
+  </aside>
+</main>
+
+<!-- ============ TAB 2: HƯỚNG DẪN ============ -->
+<section id="view-guide" class="view wrap" role="tabpanel" aria-labelledby="tab-guide" hidden>
+  <h2 class="page-title">Mỗi loại rác bỏ vào đâu?</h2>
+  <p class="lead">Mô hình nhận diện 6 nhóm của bộ dữ liệu TrashNet. Quy định thùng rác có thể khác nhau theo địa phương, hãy đối chiếu thêm với nơi bạn sinh sống.</p>
+  <div class="guide-grid" id="guideGrid"></div>
+</section>
+
+<!-- ============ TAB 3: GIỚI THIỆU ============ -->
+<section id="view-about" class="view wrap" role="tabpanel" aria-labelledby="tab-about" hidden>
+  <h2 class="page-title">Hệ thống hoạt động thế nào?</h2>
+  <ol class="flow">
+    <li><b>Camera</b><span>Trình duyệt lấy luồng video bằng <code>getUserMedia</code>.</span></li>
+    <li><b>Tiền xử lý</b><span>Mỗi khung hình được thu về 224×224 và chuẩn hóa giá trị điểm ảnh.</span></li>
+    <li><b>MobileNetV2</b><span>Mô hình đã huấn luyện trên TrashNet chạy bằng TensorFlow.js ngay trong máy.</span></li>
+    <li><b>Kết quả</b><span>Kết quả 5 khung gần nhất được lấy trung bình, giữ yên khoảng 1 giây thì ghi vào lịch sử.</span></li>
+  </ol>
+  <div class="card about-card">
+    <h2>Thông tin kỹ thuật</h2>
+    <dl>
+      <dt>Bộ dữ liệu</dt><dd>TrashNet (Kaggle), 6 lớp</dd>
+      <dt>Kiến trúc</dt><dd>MobileNetV2, transfer learning</dd>
+      <dt>Chạy ở đâu</dt><dd>Hoàn toàn trên trình duyệt, ảnh không gửi lên máy chủ</dd>
+      <dt>Phím tắt</dt><dd><kbd>Space</kbd> bật/tắt camera, <kbd>F</kbd> toàn màn hình, <kbd>T</kbd> đổi giao diện</dd>
+    </dl>
+  </div>
+</section>
+
+<footer class="foot">Đồ án: Hệ thống phân loại rác thải thông minh qua camera</footer>
+
+<script src="js/config.js"></script>
+<script src="js/classifier.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
