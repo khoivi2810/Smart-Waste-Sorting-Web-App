@@ -8,7 +8,7 @@
 * **Result Smoothing:** Tích hợp bộ đệm (buffer) đa khung hình giúp kết quả hiển thị mượt mà.
 
 ## Cài đặt & Sử dụng
-1. Truy cập bản Demo trực tuyến: `[Dán link Netlify của bạn vào đây]`
+1. Truy cập bản Demo trực tuyến: https://magical-salmiakki-a0a8e9.netlify.app
 2. Cấp quyền sử dụng Camera cho trình duyệt.
 3. Đưa vật thể ra trước camera, giữ khoảng cách 15-30cm và đảm bảo môi trường đủ sáng.
 
